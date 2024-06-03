@@ -20,4 +20,5 @@
 3. /nifi-api/flow/status  
 - 3개의 api로 test
 - NiFi 계정 정보로 토큰을 발급 받아 사용
-- nifi.properties에서 토큰 유효기간을 조절하지 못해서 토큰이 만료될때마다 새로 발급 받아서 call 했음(약 8시간)
+- nifi.properties에서 토큰 유효기간을 조절하려 했으나 실패  
+-->토큰이 만료될때마다 새로 발급 받아서 call 했음(약 8시간)
