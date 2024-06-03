@@ -6,6 +6,7 @@
 등을 확인하기 위한 방법으로 관련 api를 호출
 
 - test환경 setting  
+-- Python 3.7.16  
 -- Nifi: 1.21.0  
 -- java: openjdk version "11"  
 -- 내장 주키퍼  
@@ -22,3 +23,4 @@
 - NiFi 계정 정보로 토큰을 발급 받아 사용
 - nifi.properties에서 토큰 유효기간을 조절하려 했으나 실패  
 -->토큰이 만료될때마다 새로 발급 받아서 call 했음(약 8시간)
+
