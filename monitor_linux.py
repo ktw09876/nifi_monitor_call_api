@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 import warnings as wrn
@@ -13,14 +14,16 @@ class NifiRestApiClient():
 
         ###접속 정보 설정
         self.usernames, self.passwords, self.addr_ips, self.addr_ports = self.read_conf('settings/setting.ini')
-        self.lin_token_path = 'settings/tokens/access_token' #토큰 경로
+        self.lin_token_path = 'settings/tokens' #토큰 경로 access_token.txt
 
-        self.lin_sys_diag = 'logs/system-diagnostics.txt' #윈도우/system-diagnostics 결과 로그 경로
+        ###로그 경로
+        self.lin_sys_diag = 'logs/system_diagnostics.txt' #윈도우/system-diagnostics 결과 로그 경로
         self.lin_flow_stat = 'logs/flow_status.txt' #/flow/status 결과 로그 경로
         self.lin_ctr_clst = 'logs/controller_cluster.txt' #/controller/cluster 결과 로그 경로
         self.lin_error_logs = 'logs/error_logs.txt' #nifi 서버 에러 로그 경로
 
         self.access_token = None
+        self.first_token = False
         self.sys_diag_header = False
         self.ctr_clst_header = False
         self.flow_stat_header = False
@@ -66,7 +69,7 @@ class NifiRestApiClient():
         return dict(items)
 
     ###데이터 출력 형식 지정 json -> tsv
-    def transform_data_form(self, in_ip, in_port, data: dict) -> tuple:
+    def transform_data_form(self, ip_in, port_in, data: dict) -> tuple:
 
         ###헤더 형식 변환
         data_headers = list(data.keys()) #호출로 반환 받은 json 데이터 중 키를 파싱, 리스트형태
@@ -85,7 +88,7 @@ class NifiRestApiClient():
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S') # 시간 기록
 
         values.insert(0, current_time) #현재 시간
-        values.insert(1, f'{in_ip}:{in_port}') # 노드 구분용 ip/ port
+        values.insert(1, f'{ip_in}:{port_in}') # 노드 구분용 ip/ port
         tab_bodys = '\t'.join(values) #구분자 '\t' 을 이용해서 이어 붙임
 
         return tab_headers, tab_bodys
@@ -133,58 +136,70 @@ class NifiRestApiClient():
             return int(test_str)
         
     ###새로운 토큰을 발급 받음
-    def write_access_token(self, in_id: str, in_pwd: str, in_ip: str, in_port: str) -> None:
+    def write_access_token(self, id_in: str, pwd_in: str, ip_in: str, port_in: str) -> None:
         _data = {
-                'username': in_id,
-                'password': in_pwd
+                'username': id_in,
+                'password': pwd_in
         }
-        response = requests.post(f'https://{in_ip}:{in_port}/nifi-api/access/token', data=_data, verify=False) #verify=False 보안에 대한 SSL 인증서 체크를 안 함
+        response = requests.post(f'https://{ip_in}:{port_in}/nifi-api/access/token', data=_data, verify=False) #verify=False 보안에 대한 SSL 인증서 체크를 안 함
 
         ###파일에 토큰 저장
-        with open(self.lin_token_path, 'w') as token:
+        with open(f'{self.lin_token_path}/access_token_{ip_in}:{port_in}.txt', 'w') as token:
             token.write(response.text)
             # print(self.access_token)    
     
     ###저장된 토큰 파일을 읽음
-    def read_access_token(self) -> None:
-        with open(self.lin_token_path, 'r') as token: 
+    def read_access_token(self, ip_in: str, port_in: str) -> None:
+        with open(f'{self.lin_token_path}/access_token_{ip_in}:{port_in}.txt', 'r') as token: 
             self.access_token = token.read().rstrip() #파일을 윈도우에서 리눅스로 옮기는 경우 원치않는 개행문자가 추가되는 경우가 있음(\n), 개행문자 제거
 
     ###api 호출
-    def get_info(self, catch_id: str, catch_pwd: str, catch_ip: str, catch_port: str, sub_url: str) -> None:
+    def get_info(self, id_catch: str, pwd_catch: str, ip_catch: str, port_catch: str, sub_url: str) -> None:
 
         ###api 호출에 필요한 인자 세팅
-        # self.write_access_token(catch_id, catch_pwd, catch_ip, catch_port) #새로운 토큰을 발급 받아서
-        self.read_access_token() #파일에서 토큰을 읽어옴
+        if not self.first_token: #프로그램이 처음 시작할 때 
+            self.write_access_token(id_catch, pwd_catch, ip_catch, port_catch) #토큰을 발급 받음
+            self.first_token = True #처음 시작에만 토큰을 발급 받음, 이후에는 파일로 저장된 토큰을 활용
+            print(f'Start new token setting {ip_catch}:{port_catch}')
+
+        self.read_access_token(ip_catch, port_catch) #발급 받아 저장된 파일에서 토큰을 읽어옴
         _headers = { #api 호출에 필요한 인자
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {self.access_token}'
         }
 
         ###api 호출
-        response = requests.get(f'https://{catch_ip}:{catch_port}/nifi-api{sub_url}', headers=_headers, verify=False) #api url
+        response = requests.get(f'https://{ip_catch}:{port_catch}/nifi-api{sub_url}', headers=_headers, verify=False) #api url
 
-        ###api 호출에 성공하면 
         try:
+
+            ###api 호출에 성공하면 
             if response.status_code in (200, 201):
                 raw_json = response.json() 
-                controllerStatus = raw_json
                 # print(json_data, flush=True) #api 호출로 반환 받은 데이터 확인
                 
                 ###api 호출 시간 기록
                 current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                mod_json = self.modify_json(controllerStatus) #json 의 중첩을 평탄화 한다
-                trans_headers, trans_bodys = self.transform_data_form(catch_ip, catch_port, mod_json) #데이터 출력 형식 변환
+                mod_json = self.modify_json(raw_json) #json 의 중첩을 평탄화 한다
+                trans_headers, trans_bodys = self.transform_data_form(ip_catch, port_catch, mod_json) #데이터 출력 형식 변환
                 self.print_result(sub_url, trans_headers, trans_bodys)
+                print(f'API call successful {ip_catch}:{port_catch}')
             
             ###호출에 실패한 이유가 토큰 인증 관련이라면
             elif response.status_code == 401:
-                self.write_access_token(catch_id, catch_pwd, catch_ip, catch_port) #새로운 토큰을 발급 받아서 
-                self.read_access_token() #다시 파일에서 토큰을 읽어옴
+
+                ### 에러 결과 redirection
+                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S') # 시간 기록
+                with open(self.lin_error_logs, 'a') as error_logs: 
+                    error_logs.write(f'{current_time} error_url: {sub_url}/{ip_catch}:{port_catch} response.code [{response.status_code}] {e}\n') # 형식: 2024-05-20 17:29:49 error_url: [url] response.code [401]
+                
+                print(f'Token error!!! resetting {ip_catch}:{port_catch}')
+                self.write_access_token(id_catch, pwd_catch, ip_catch, port_catch) #새로운 토큰을 발급 받아서 
+                self.read_access_token(ip_catch, port_catch) #다시 파일에서 토큰을 읽어옴
                 _headers['Authorization'] = f'Bearer {self.access_token}' #새로 파일에서 읽어온 토큰을 인자로 할당
 
                 ###다시 api 호출
-                response = requests.get(f'https://{catch_ip}:{catch_port}/nifi-api{sub_url}', headers=_headers, verify=False) # api url
+                response = requests.get(f'https://{ip_catch}:{port_catch}/nifi-api{sub_url}', headers=_headers, verify=False) # api url
 
         ############### 테스트 필요 #########################################################
         ###그 외 다른 이유로 호출에 실패했다면
@@ -193,17 +208,18 @@ class NifiRestApiClient():
             ### 에러 결과 redirection
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S') # 시간 기록
             with open(self.lin_error_logs, 'a') as error_logs: 
-                error_logs.write(f'{current_time} error: url: {sub_url} response.code [{response.status_code}] {e}\n') # 형식: 2024-05-20 17:29:49 error: response.code [401]
-
-            raise Exception(f'error code[{response.status_code}] error url: {sub_url}')
+                error_logs.write(f'{current_time} error_url: {sub_url}/{ip_catch}:{port_catch} response.code [{response.status_code}] {e}\n') # 형식: 2024-05-20 17:29:49 error_url: [url] response.code [401]\
+                
+            print(f'API call failed!!! {ip_catch}:{port_catch}')
+            raise Exception(f'error code[{response.status_code}] error url: {sub_url}/{ip_catch}:{port_catch}')
 
 def main(term: str, end_time: str):
     cli = NifiRestApiClient() 
     
     ###입력 받은 인수 조건 검사
     try:    
-        catch_term = cli.test_string(term)
-        catch_end_time = cli.test_string(end_time)
+        term_catch = cli.test_string(term)
+        end_time_catch = cli.test_string(end_time)
     except ValueError as val_e:
         print(f'message {val_e}')
         sys.exit(1)
@@ -223,11 +239,11 @@ def main(term: str, end_time: str):
     with ThreadPoolExecutor(max_workers=len(cli.addr_ips)) as executor:
         futures = []
 
-        for _ in range(1, (catch_end_time + 1) // catch_term + 1):
-            for username, password, ip, port in zip(cli.usernames, cli.passwords, cli.addr_ips, cli.addr_ports):
-                futures.append(executor.submit(call_apis_for_ip, username, password, ip, port))
+        for _ in range(1, (end_time_catch + 1) // term_catch + 1):
+            for id, pwd, ip, port in zip(cli.usernames, cli.passwords, cli.addr_ips, cli.addr_ports):
+                futures.append(executor.submit(call_apis_for_ip, id, pwd, ip, port))
 
-            time.sleep(catch_term)  # 호출 주기 조절
+            time.sleep(term_catch)  # 호출 주기 조절
 
         for future in as_completed(futures):
             try:
