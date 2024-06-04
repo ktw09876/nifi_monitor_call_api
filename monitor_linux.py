@@ -198,7 +198,16 @@ class NifiRestApiClient():
                 _headers['Authorization'] = f'Bearer {self.access_token}' #새로 파일에서 읽어온 토큰을 인자로 할당
 
                 ###다시 api 호출
-                response = requests.get(f'https://{ip_catch}:{port_catch}/nifi-api{sub_url}', headers=_headers, verify=False) # api url
+                re_response = requests.get(f'https://{ip_catch}:{port_catch}/nifi-api{sub_url}', headers=_headers, verify=False) # api url
+                re_raw_json = re_response.json() 
+                # print(json_data, flush=True) #api 호출로 반환 받은 데이터 확인
+                
+                ###api 호출 시간 기록
+                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                mod_json = self.modify_json(re_raw_json) #json 의 중첩을 평탄화 한다
+                trans_headers, trans_bodys = self.transform_data_form(ip_catch, port_catch, mod_json) #데이터 출력 형식 변환
+                self.print_result(sub_url, trans_headers, trans_bodys)
+                print(f'API call successful {ip_catch}:{port_catch}')
 
         ############### 테스트 필요 #########################################################
         ###그 외 다른 이유로 호출에 실패했다면
