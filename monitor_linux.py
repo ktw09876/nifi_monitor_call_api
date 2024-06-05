@@ -29,14 +29,13 @@ class NifiRestApiClient():
         
     ###기본 설정값을 .ini에서 읽어옴
     def read_conf(self, ini_path: str) -> tuple:
+        config = parser.ConfigParser()
+        config.read(ini_path)
+        
         usernames = []
         passwords = []
         address_ips = []
         address_ports = []
-        
-        config = parser.ConfigParser()
-        config.read(ini_path)
-
         for section in config.sections():
             usernames.append(config[section]['username'])
             passwords.append(config[section]['password'])
@@ -47,8 +46,8 @@ class NifiRestApiClient():
 
     ###입력 받은 json의 중첩을 해제, 평탄화
     def modify_json(self, data: dict, key: str = '') -> dict:
+        
         items = []
-
         for k, v in data.items():
             if key:
                 new_key = f'{key}.{k}'
@@ -245,8 +244,8 @@ def main(term: str, end_time: str):
 
     ###호출 비동기 처리
     with ThreadPoolExecutor(max_workers=len(cli.addr_ips)) as executor:
+        
         futures = []
-
         for _ in range(1, (end_time_catch + 1) // term_catch + 1):
             for id, pwd, ip, port in zip(cli.usernames, cli.passwords, cli.addr_ips, cli.addr_ports):
                 futures.append(executor.submit(call_apis_for_ip, id, pwd, ip, port))
