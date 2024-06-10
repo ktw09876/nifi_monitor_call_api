@@ -17,9 +17,6 @@ class NifiRestApiClient():
 
         ###로그 경로
         self.res_log_path = 'logs'
-        # self.lin_sys_diag = 'logs/system_diagnostics.txt' #윈도우/system-diagnostics 결과 로그 경로
-        # self.lin_flow_stat = 'logs/flow_status.txt' #/flow/status 결과 로그 경로
-        # self.lin_ctr_clst = 'logs/controller_cluster.txt' #/controller/cluster 결과 로그 경로
         self.lin_error_logs = 'logs/error_logs.txt' #nifi 서버 에러 로그 경로
 
         self.access_token = None
@@ -29,10 +26,6 @@ class NifiRestApiClient():
             ,'controller/cluster': False
             ,'flow/status': False
         }
-
-        # self.sys_diag_header = False
-        # self.ctr_clst_header = False
-        # self.flow_stat_header = False
         
     ###기본 설정값을 .ini에서 읽어옴
     def read_conf(self, ini_path: str) -> list:
@@ -131,8 +124,8 @@ class NifiRestApiClient():
     ###새로운 토큰을 발급 받음
     def write_access_token(self, wrt_id: str, wrt_pwd: str, wrt_ip: str, wrt_port: str) -> None:
         _data = {
-                 'username': wrt_id
-                ,'password': wrt_pwd
+             'username': wrt_id
+            ,'password': wrt_pwd
         }
         response = requests.post(f'https://{wrt_ip}:{wrt_port}/nifi-api/access/token', data=_data, verify=False) #verify=False 보안에 대한 SSL 인증서 체크를 안 함
 
@@ -157,8 +150,8 @@ class NifiRestApiClient():
 
         self.read_access_token(info_ip, info_port) #발급 받아 저장된 파일에서 토큰을 읽어옴, self.access_token 설정
         _headers = { #api 호출에 필요한 인자
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {self.access_token}'
+             'Content-Type': 'application/json'
+            ,'Authorization': f'Bearer {self.access_token}'
         }
 
         ###api 호출
