@@ -16,11 +16,10 @@
     - OS: Rocky Linux9  
     - HDD: 20GB
     - RAM: 4G
-
+- 3개의 api로 test
 1. /nifi-api/system-diagnostics
 2. /nifi-api/controller/cluster
 3. /nifi-api/flow/status  
-- 3개의 api로 test
 - NiFi 계정 정보로 토큰을 발급 받아 사용
 
 ## 어려웠던 점  
@@ -42,7 +41,7 @@
     -->토큰이 만료될때마다 새로 발급 받아서(약 8시간) 호출 했음
 4. 멀티 노드 환경 구성을 위해 Clustering
     - VMware를 이용해 3개의 가상 환경 구축
-    - 옵션 설정이 어려웠음(3일 걸림)
+    - 옵션 설정이 어려웠음 - 4일 소요
         1. nifi.properties
         2. zookeeper.properties
         3. state-management.xml
