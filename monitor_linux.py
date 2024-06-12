@@ -29,13 +29,14 @@ class NifiRestApiClient():
         
     ###기본 설정값을 .ini에서 읽어옴
     def read_conf(self, ini_path: str) -> list:
-        config = parser.ConfigParser()
-        config.read(ini_path)
-        
         usernames = []
         passwords = []
         address_ips = []
         address_ports = []
+        
+        config = parser.ConfigParser()
+        config.read(ini_path)
+        
         for section in config.sections():
             usernames.append(config[section]['username'])
             passwords.append(config[section]['password'])
@@ -216,7 +217,7 @@ def main(term: str, end_time: str):
 
     ###입력 받는 인자를 주기로 api 호출   
     def call_apis_for_ip(username, password, ip, port):
-        wrn.filterwarnings('ignore', message=f"Unverified HTTPS request is being made to host '{ip}'.*")
+        wrn.filterwarnings('ignore', message=f"Unverified HTTPS request is being made to host '{ip}'.*") #경고 메세지 무시
         cli.get_info(username, password, ip, port, 'system-diagnostics')
         cli.get_info(username, password, ip, port, 'controller/cluster')
         cli.get_info(username, password, ip, port, 'flow/status')
