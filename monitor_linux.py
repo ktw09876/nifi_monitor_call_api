@@ -170,6 +170,7 @@ class NifiRestApiClient():
 
             ###api 호출에 성공하면 
             if response.status_code in (200, 201):
+                
                 raw_json = response.json() 
                 # print(json_data, flush=True) #api 호출로 반환 받은 데이터 확인
                 mod_json = self.modify_json(raw_json) #json 의 중첩을 평탄화 한다
@@ -184,7 +185,7 @@ class NifiRestApiClient():
                 current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S') #시간 기록
 
                 with open(self.lin_error_logs, 'a') as error_logs: #로그 .txt로 저장
-                    error_logs.write(f'{current_time} error_url: {info_ip}:{info_port}/{sub_url} response.code [{response.status_code}] {e}\n') # 형식: 2024-05-20 17:29:49 error_url: [url] response.code [401]
+                    error_logs.write(f'{current_time} error_url: {info_ip}:{info_port}/{sub_url} response.code [{response.status_code}]\n') # 형식: 2024-05-20 17:29:49 error_url: [url] response.code [401]
                 
                 print(f'Token error!!! resetting {info_ip}:{info_port}') #에러 메세지 출력 후
                 self.write_access_token(info_ip, info_port, info_ip, info_port) #새로운 토큰을 발급 받아서 
@@ -199,6 +200,15 @@ class NifiRestApiClient():
                 trans_headers, trans_bodys = self.transform_data(info_ip, info_port, mod_json) #데이터 출력 형식 변환
                 self.print_result(sub_url, trans_headers, trans_bodys) #.txt 저장
                 print(f'API call successful {info_ip}:{info_port}')
+            
+            ###그 외 다른 response.status_code 처리
+            else:
+                print(f'response.status_code error!!! [{response.status_code}]')
+                ### 에러 결과 redirection
+                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S') #시간 기록
+
+                with open(self.lin_error_logs, 'a') as error_logs: #로그 .txt로 저장
+                    error_logs.write(f'{current_time} error_url: {info_ip}:{info_port}/{sub_url} response.code [{response.status_code}]\n') # 형식: 2024-05-20 17:29:49 error_url: [url] response.code [401]
 
         ############### 테스트 필요 #########################################################
         ###그 외 다른 이유로 호출에 실패했다면
