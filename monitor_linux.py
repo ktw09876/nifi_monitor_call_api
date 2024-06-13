@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 import warnings as wrn
@@ -94,14 +95,21 @@ class NifiRestApiClient():
 
     ###출력 결과 redirection
     def print_result(self, prt_url: str, prt_headers: str, prt_bodys: str) -> None:
-        mod_url = prt_url.replace('/', '_')
+        mod_url = prt_url.replace('/', '_') #api url을 파일명으로 하기 위해 '/'를 '_'로 변경
 
-        with open(f'{self.res_log_path}/{mod_url}.txt', 'a') as result_logs:
-            if not self.set_headers[prt_url]: #처음
+        ###경로에 같은 이름의 파일이 있는 경우 바디만 추가
+        if f'{mod_url}.txt' in os.listdir(self.res_log_path): #경로에 같은 이름의 파일이 있으면
+            with open(f'{self.res_log_path}/{mod_url}.txt', 'a') as result_logs:
+                result_logs.write(prt_bodys + '\n') #바디 작성
+            self.set_headers[prt_url] = True
+
+        ###log 처음 생성할 때
+        if not self.set_headers[prt_url]:
+            with open(f'{self.res_log_path}/{mod_url}.txt', 'a') as result_logs:
                 result_logs.write(prt_headers + '\n') #해더 작성
                 self.set_headers[prt_url] = True
+                result_logs.write(prt_bodys + '\n') #바디 작성
 
-            result_logs.write(prt_bodys + '\n') #바디 작성
 
     ###입력 받은 인수 조건 검사
     def test_string(self, test_str: str) -> int:
@@ -201,7 +209,7 @@ class NifiRestApiClient():
             with open(self.lin_error_logs, 'a') as error_logs: 
                 error_logs.write(f'{current_time} error_url: {info_ip}:{info_port}/{sub_url} response.code [{response.status_code}] {e}\n') # 형식: 2024-05-20 17:29:49 error_url: [url] response.code [401]\
                 
-            print(f'API call failed!!! {info_ip}:{info_port}')
+            print(f'API call failed!!! {info_ip}:{info_port}, url: {sub_url}')
             raise Exception(f'error code[{response.status_code}] error url: {info_ip}:{info_port}/{sub_url}')
 
 def main(term: str, end_time: str):
