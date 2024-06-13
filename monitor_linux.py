@@ -132,6 +132,7 @@ class NifiRestApiClient():
         
     ###새로운 토큰을 발급 받음
     def write_access_token(self, wrt_id: str, wrt_pwd: str, wrt_ip: str, wrt_port: str) -> None:
+        print(f'Start new token setting {wrt_ip}:{wrt_port}')
         _data = {
              'username': wrt_id
             ,'password': wrt_pwd
@@ -155,7 +156,6 @@ class NifiRestApiClient():
         if not self.first_token: #프로그램이 처음 시작할 때 
             self.write_access_token(info_id, info_pwd, info_ip, info_port) #토큰을 발급 받음
             self.first_token = True #처음 시작에만 토큰을 발급 받음, 이후에는 파일로 저장된 토큰을 활용
-            print(f'Start new token setting {info_ip}:{info_port}')
 
         self.read_access_token(info_ip, info_port) #발급 받아 저장된 파일에서 토큰을 읽어옴, self.access_token 설정
         _headers = { #api 호출에 필요한 인자
