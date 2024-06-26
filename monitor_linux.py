@@ -94,20 +94,20 @@ class NifiRestApiClient():
         return tab_headers, tab_bodys
 
     ###출력 결과 redirection
-    def print_result(self, prt_url: str, prt_headers: str, prt_bodys: str) -> None:
+    def print_result(self, prt_url: str, prt_headers: str, prt_bodys: str, prt_log_path: str, prt_set_headers) -> None:
         mod_url = prt_url.replace('/', '_') #api url을 파일명으로 하기 위해 '/'를 '_'로 변경
 
         ###경로에 같은 이름의 파일이 있는 경우 바디만 추가
-        if f'{mod_url}.txt' in os.listdir(self.res_log_path): #경로에 같은 이름의 파일이 있으면
-            with open(f'{self.res_log_path}/{mod_url}.txt', 'a') as result_logs:
+        if f'{mod_url}.txt' in os.listdir(prt_log_path): #경로에 같은 이름의 파일이 있으면
+            with open(f'{prt_log_path}/{mod_url}.txt', 'a') as result_logs:
                 result_logs.write(prt_bodys + '\n') #바디 작성
-            self.set_headers[prt_url] = True
+            prt_set_headers[prt_url] = True
 
         ###log 처음 생성할 때
-        if not self.set_headers[prt_url]:
-            with open(f'{self.res_log_path}/{mod_url}.txt', 'a') as result_logs:
+        if not prt_set_headers[prt_url]:
+            with open(f'{prt_log_path}/{mod_url}.txt', 'a') as result_logs:
                 result_logs.write(prt_headers + '\n') #해더 작성
-                self.set_headers[prt_url] = True
+                prt_set_headers[prt_url] = True
                 result_logs.write(prt_bodys + '\n') #바디 작성
 
 
@@ -150,7 +150,7 @@ class NifiRestApiClient():
             self.access_token = token.read().rstrip() #파일을 윈도우에서 리눅스로 옮기는 경우 원치않는 개행문자가 추가되는 경우가 있음(\n), 개행문자 제거
 
     ###api 호출
-    def get_info(self, info_id: str, info_pwd: str, info_ip: str, info_port: str, sub_url: str) -> None:
+    def get_info(self, info_id: str, info_pwd: str, info_ip: str, info_port: str, info_log_path: str, info_set_headers: dict, sub_url: str) -> None:
 
         ###api 호출에 필요한 인자 세팅
         if not self.first_token: #프로그램이 처음 시작할 때 
@@ -175,7 +175,7 @@ class NifiRestApiClient():
                 # print(json_data, flush=True) #api 호출로 반환 받은 데이터 확인
                 mod_json = self.modify_json(raw_json) #json 의 중첩을 평탄화 한다
                 trans_headers, trans_bodys = self.transform_data(info_ip, info_port, mod_json) #데이터 출력 형식 변환
-                self.print_result(sub_url, trans_headers, trans_bodys) #.txt로 저장
+                self.print_result(sub_url, trans_headers, trans_bodys, info_log_path, info_set_headers) #.txt로 저장
                 print(f'API call successful {info_ip}:{info_port}')
             
             ###호출에 실패한 이유가 토큰 인증 관련이라면
@@ -198,7 +198,7 @@ class NifiRestApiClient():
                 # print(json_data, flush=True) #api 호출로 반환 받은 데이터 확인
                 mod_json = self.modify_json(re_raw_json) #json 의 중첩을 평탄화 한다
                 trans_headers, trans_bodys = self.transform_data(info_ip, info_port, mod_json) #데이터 출력 형식 변환
-                self.print_result(sub_url, trans_headers, trans_bodys) #.txt 저장
+                self.print_result(sub_url, trans_headers, trans_bodys, info_log_path, info_set_headers) #.txt 저장
                 print(f'API call successful {info_ip}:{info_port}')
             
             ###그 외 다른 response.status_code 처리
@@ -236,9 +236,9 @@ def main(term: str, end_time: str):
     ###입력 받는 인자를 주기로 api 호출   
     def call_apis_for_ip(username, password, ip, port):
         wrn.filterwarnings('ignore', message=f"Unverified HTTPS request is being made to host '{ip}'.*") #경고 메세지 무시
-        cli.get_info(username, password, ip, port, 'system-diagnostics')
-        cli.get_info(username, password, ip, port, 'controller/cluster')
-        cli.get_info(username, password, ip, port, 'flow/status')
+        cli.get_info(username, password, ip, port, cli.res_log_path, cli.set_headers, 'system-diagnostics')
+        cli.get_info(username, password, ip, port, cli.res_log_path, cli.set_headers, 'controller/cluster')
+        cli.get_info(username, password, ip, port, cli.res_log_path, cli.set_headers, 'flow/status')
 
     ###시작 시간 기록
     start_time_recod = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
