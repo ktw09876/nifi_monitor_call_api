@@ -30,14 +30,14 @@ class NifiRestApiClient():
         
     ###기본 설정값을 .ini에서 읽어옴
     def read_conf(self, ini_path: str) -> list:
+        config = parser.ConfigParser()
+        config.read(ini_path)
+
         usernames = []
         passwords = []
         address_ips = []
         address_ports = []
-        
-        config = parser.ConfigParser()
-        config.read(ini_path)
-        
+
         for section in config.sections():
             usernames.append(config[section]['username'])
             passwords.append(config[section]['password'])
@@ -70,7 +70,6 @@ class NifiRestApiClient():
 
     ###데이터 출력 형식 지정 json -> tsv
     def transform_data(self, transf_ip: str, transf_port: str, transf_data: dict) -> str:
-        values = []
         
         ###헤더 형식 변환
         data_headers = list(transf_data.keys()) #호출로 반환 받은 json 데이터 중 키를 파싱, 리스트형태
@@ -82,6 +81,8 @@ class NifiRestApiClient():
         data_bodys = list(transf_data.values()) #호출로 반환 받은 json 데이터 중 값을 파싱, 리스트형태
 
         ###값에 실수가 포함되어 있어서 타입 변환
+        values = []
+
         for value in data_bodys:
             values.append(str(value))
 
@@ -246,8 +247,8 @@ def main(term: str, end_time: str):
 
     ###호출 비동기 처리
     with ThreadPoolExecutor(max_workers=len(cli.addr_ips)) as executor:
-        
         futures = []
+
         for _ in range(1, (end_time_catch + 1) // term_catch + 1):
             for id, pwd, ip, port in zip(cli.usernames, cli.passwords, cli.addr_ips, cli.addr_ports):
                 futures.append(executor.submit(call_apis_for_ip, id, pwd, ip, port))
